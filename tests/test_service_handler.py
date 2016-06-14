@@ -1,67 +1,71 @@
 import json
-import threading
-from unittest.mock import Mock
-from nio.modules.security.user import User
+from unittest.mock import MagicMock
 from nio.modules.web.http import Request
-from niocore.testing.test_case import NIOCoreTestCase
+from nio.testing.modules.security.module import TestingSecurityModule
+from niocore.components.log.service_handler import ServiceLogHandler
 
 from ..service_handler import ServiceLogHandler
+from niocore.testing.web_test_case import NIOCoreWebTestCase
 
 
-class TestServiceLogHandler(NIOCoreTestCase):
+class TestServiceLogHandler(NIOCoreWebTestCase):
 
-    def get_test_modules(self):
-        return super().get_test_modules() | {'security'}
-
-    def setUp(self):
-        super().setUp()
-        setattr(threading.current_thread(), "user", User("tester"))
-
-    def tearDown(self):
-        delattr(threading.current_thread(), "user")
-        super().tearDown()
+    def get_module(self, module_name):
+        # Don't want to test permissions, use the test module
+        if module_name == 'security':
+            return TestingSecurityModule()
+        else:
+            return super().get_module(module_name)
 
     def test_on_get(self):
-        manager = Mock()
+        manager = MagicMock()
         loggers = [{"name": "a logger"}]
-        manager.get_service_logger_names = Mock(return_value=loggers)
+        manager.get_service_logger_names.return_value = loggers
         handler = ServiceLogHandler("", manager)
         # Request without 'level' param
-        request = Request(None, {"identifier": "logger"}, None)
-        response = Mock()
-        handler.on_get(request, response)
+        mock_req = MagicMock(spec=Request)
+        mock_req.get_params.return_value = {"identifier": "logger"}
+        response = MagicMock()
+        handler.on_get(mock_req, response)
         response_body = response.set_body.call_args[0][0]
         self.assertEqual(response_body, json.dumps(loggers))
         manager.get_service_logger_names.assert_called_with('logger', False)
         # Request with 'level' param
-        request = Request(
-            None, {"identifier": "logger", "level": "true"}, None)
-        response = Mock()
-        handler.on_get(request, response)
+        mock_req = MagicMock(spec=Request)
+        mock_req.get_params.return_value = {
+            "level": "true",
+            "identifier": "logger"
+        }
+        response = MagicMock()
+        handler.on_get(mock_req, response)
         response_body = response.set_body.call_args[0][0]
         self.assertEqual(response_body, json.dumps(loggers))
         manager.get_service_logger_names.assert_called_with('logger', True)
 
     def test_on_post(self):
-        manager = Mock()
+        manager = MagicMock()
+        mock_req = MagicMock(spec=Request)
+        mock_req.get_body.return_value = {
+            "log_level": "ERROR",
+            "logger_name": "logger"
+        }
+        mock_req.get_params.return_value = {"identifier": "service"}
         handler = ServiceLogHandler("", manager)
-        body = {"log_level": "ERROR",
-                "logger_name": "logger"}
-        params = {"identifier": "service"}
-        request = Request(body, params, None)
-        response = Mock()
-        handler.on_post(request, response)
+        response = MagicMock()
+        handler.on_post(mock_req, response)
         manager.set_service_log_level.assert_called_with(
             'service', 'logger', 'ERROR')
 
     def test_on_put(self):
-        manager = Mock()
+        manager = MagicMock()
+        mock_req = MagicMock(spec=Request)
+        mock_req.get_body.return_value = {
+            "log_level": "ERROR",
+            "logger_name": "logger"
+        }
+        mock_req.get_params.return_value = {"identifier": "service"}
         handler = ServiceLogHandler("", manager)
-        body = {"log_level": "ERROR",
-                "logger_name": "logger"}
-        params = {"identifier": "service"}
-        request = Request(body, params, None)
-        response = Mock()
-        handler.on_put(request, response)
+        response = MagicMock()
+        handler.on_put(mock_req, response)
         manager.set_service_log_level.assert_called_with(
             'service', 'logger', 'ERROR')
