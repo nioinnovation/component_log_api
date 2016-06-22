@@ -2,7 +2,6 @@ import json
 from unittest.mock import MagicMock
 from nio.modules.web.http import Request
 from nio.testing.modules.security.module import TestingSecurityModule
-from niocore.components.log.service_handler import ServiceLogHandler
 
 from ..service_handler import ServiceLogHandler
 from niocore.testing.web_test_case import NIOCoreWebTestCase
