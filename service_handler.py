@@ -1,5 +1,5 @@
 import json
-from nio.modules.security.decorator import protected_access
+from nio.modules.security.access import ensure_access
 from nio.util.logging import get_nio_logger
 from nio.modules.web import RESTHandler
 
@@ -14,11 +14,14 @@ class ServiceLogHandler(RESTHandler):
         self._log_manager = log_manager
         self.logger = get_nio_logger("ServiceLogHandler")
 
-    @protected_access("logging.view")
     def on_get(self, request, response, *args, **kwargs):
+
+        # Ensure instance "read" access in order to get service log levels
+        ensure_access("instance", "read")
+
         params = request.get_params()
         self.logger.info("ServiceLogHandler.on_get, params: {0}".
-                          format(params))
+                         format(params))
 
         if "identifier" not in params:
             raise RuntimeError("Service name not provided")
@@ -38,12 +41,15 @@ class ServiceLogHandler(RESTHandler):
         response.set_header('Content-Type', 'application/json')
         response.set_body(json.dumps(logger_names))
 
-    @protected_access("logging.modify")
     def on_post(self, request, response, *args, **kwargs):
+
+        # Ensure instance "write" access in order to modify service log levels
+        ensure_access("instance", "write")
+
         params = request.get_params()
         body = request.get_body()
         self.logger.info("ServiceLogHandler.on_post, params: {0}, body: {1}".
-                          format(params, body))
+                         format(params, body))
         if "identifier" not in params:
             raise RuntimeError("Service name not provided")
 
@@ -71,7 +77,6 @@ class ServiceLogHandler(RESTHandler):
                                                 logger_name,
                                                 level)
 
-    @protected_access("logging.modify")
     def on_put(self, request, response, *args, **kwargs):
         return self.on_post(request, response, args, kwargs)
 
