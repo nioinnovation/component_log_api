@@ -40,6 +40,28 @@ class TestCoreLogHandler(NIOCoreWebTestCase):
         self.assertEqual(response_body, json.dumps(loggers))
         manager.get_logger_names.assert_called_with(True)
 
+        # log entries requests
+        mock_req = MagicMock(spec=Request)
+
+        # assert defaults
+        mock_req.get_params.return_value = {"identifier": "entries"}
+        manager.get_log_entries = MagicMock()
+        manager.get_log_entries.return_value = []
+        request = mock_req
+        handler.on_get(request, response)
+        manager.get_log_entries.assert_called_with("main", 100, None, None)
+        manager.get_log_entries.reset_mock()
+
+        # assert query parameters are passed along
+        mock_req.get_params.return_value = {"identifier": "entries",
+                                            "name": "service1",
+                                            "count": 20,
+                                            "level": "ERROR",
+                                            "component": "component_name"}
+        handler.on_get(request, response)
+        manager.get_log_entries.assert_called_with("service1", 20,
+                                                   "ERROR", "component_name")
+
     def test_on_post(self):
         manager = MagicMock()
         mock_req = MagicMock(spec=Request)
