@@ -15,6 +15,26 @@ class CoreLogHandler(RESTHandler):
         self.logger = get_nio_logger("CoreLogHandler")
 
     def on_get(self, request, response, *args, **kwargs):
+        """ API endpoint to retrieve log information
+
+        To retrieve log names use:
+            http://[host]:[port]/log
+        To retrieve log names and levels use:
+            http://[host]:[port]/log?level
+
+        To retrieve log entries use:
+            - reads last 100 entries from main (core process)
+                http://[host]:[port]/log/entries
+            - reads last 100 entries at ERROR level from main
+                http://[host]:[port]/log/entries?name=main&level=ERROR
+            - reads last 20 entries at ERROR level from main
+                http://[host]:[port]/log/entries?name=main&level=ERROR&count=20
+            - reads last 100 entries at WARNING level for service 'service1'
+                http://[host]:[port]/log/entries?name=service1&level=WARNING
+            - reads last 100 entries for component 'main.BlockManager'
+                http://[host]:[port]/log/entries?component=main.BlockManager
+
+        """
 
         # Ensure instance "read" access in order to retrieve log levels
         ensure_access("instance", "read")
@@ -22,13 +42,23 @@ class CoreLogHandler(RESTHandler):
         self.logger.info("CoreLogHandler.on_get")
         params = request.get_params()
 
-        add_level = False
-        if "level" in params:
-            add_level = params['level'].upper() != 'FALSE'
-        logger_names = self._log_manager.get_logger_names(add_level)
+        # What route?
+        if "identifier" in params and params["identifier"] == "entries":
+            name = params.get("name", "main")
+            count = int(params.get("count", 100))
+            level = params.get("level", None)
+            component = params.get("component", None)
+            result = self._log_manager.get_log_entries(
+                name, count, level, component
+            )
+        else:
+            add_level = False
+            if "level" in params:
+                add_level = params['level'].upper() != 'FALSE'
+            result = self._log_manager.get_logger_names(add_level)
 
         response.set_header('Content-Type', 'application/json')
-        response.set_body(json.dumps(logger_names))
+        response.set_body(json.dumps(result))
 
     def on_post(self, request, response, *args, **kwargs):
 

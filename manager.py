@@ -1,8 +1,12 @@
+from os import path
+
 from nio.util.versioning.dependency import DependsOn
 from niocore.common.executable_request import ExecutableRequest
 from niocore.core.component import CoreComponent
 from nio import discoverable
+from niocore.util.environment import NIOEnvironment
 
+from .log_entries import LogEntries
 from .executor import LogExecutor
 from .core_handler import CoreLogHandler
 from .service_handler import ServiceLogHandler
@@ -134,3 +138,27 @@ class LogManager(CoreComponent):
                                     "get_logger_names",
                                     add_level=add_level)
         return self._service_manager.execute_request(service_name, request)
+
+    @staticmethod
+    def get_log_entries(name, entries_count=-1, level=None, component=None):
+        """ Retrieves log entries
+
+        Allows to specify number of enties to read and
+        filter by level and component
+
+        Args:
+            name (str): filename identifier (full filename is figured out by
+                adding project path and extension
+            entries_count (int): number of entries to read (-1 reads them all)
+            level (str): level to filter by
+            component (str): component to filter by
+
+        Returns:
+             list of entries where items are in dict format
+        """
+        filename = path.join(
+            NIOEnvironment.get_path("logs"), "{}.log".format(name)
+        )
+        if not path.isfile(filename):
+            raise ValueError("{} is not a valid log file".format(filename))
+        return LogEntries.read(filename, entries_count, level, component)
