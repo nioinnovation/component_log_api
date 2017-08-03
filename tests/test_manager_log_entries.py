@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from nio.testing.test_case import NIOTestCase
 
-from ..log_entries import LogEntries
+from ..log_entries import LogEntries, LogEntry
 from ..manager import LogManager
 
 
@@ -107,3 +107,71 @@ class TestLogManagerEntries(NIOTestCase):
                     "msg": "log msg1"
                 }
             )
+
+    def _get_entries_dict(self):
+        return \
+            {
+                "file1": [
+                    LogEntry({"time": 1}),
+                    LogEntry({"time": 3}),
+                    LogEntry({"time": 1000})
+                ],
+                "file2": [
+                    LogEntry({"time": 1}),
+                    LogEntry({"time": 2}),
+                    LogEntry({"time": 6})
+                ],
+                "file3": [
+                    LogEntry({"time": 100}),
+                    LogEntry({"time": 200}),
+                    LogEntry({"time": 600})
+                ]
+            }
+
+    def _get_entries(self, filename, num_entries, level, component):
+        return self._get_entries_dict()[filename]
+
+    def test_read_all(self):
+        """ Asserts read_all functionality and their resulting merge
+        """
+        with patch.object(LogEntries, "read",
+                          side_effect=self._get_entries):
+            # assert returning all sorted entries
+            entries = LogEntries.read_all(list(self._get_entries_dict().keys()),
+                                          None, None, None)
+            self.assertEqual(len(entries), 9)
+            for i in range(len(entries) - 1):
+                self.assertLessEqual(entries[i]["time"],
+                                     entries[i + 1]["time"])
+
+            # assert returning last 3 sorted entries
+            entries = LogEntries.read_all(list(self._get_entries_dict().keys()),
+                                          3, None, None)
+            self.assertEqual(len(entries), 3)
+            expected_entries = [200, 600, 1000]
+            for i in range(len(entries) - 1):
+                # assert ordering
+                self.assertLessEqual(entries[i]["time"],
+                                     entries[i + 1]["time"])
+                # assert values
+                self.assertEqual(entries[i]["time"], expected_entries[i])
+                self.assertEqual(entries[i+1]["time"], expected_entries[i+1])
+
+    def test_merge(self):
+        """ Asserts merge functionality
+        """
+        a = [LogEntry({"time": 1}), LogEntry({"time": 4}),
+             LogEntry({"time": 7}), LogEntry({"time": 10})]
+        b = [LogEntry({"time": 2}), LogEntry({"time": 5}),
+             LogEntry({"time": 8}), LogEntry({"time": 11})]
+        c = [LogEntry({"time": 3}), LogEntry({"time": 6}),
+             LogEntry({"time": 9}), LogEntry({"time": 12})]
+
+        merged_entries = LogEntries._merge_entries([a, b , c])
+        # assert ordering
+        for i in range(len(merged_entries) - 1):
+            self.assertLessEqual(merged_entries[i]["time"],
+                                 merged_entries[i+1]["time"])
+        # assert values
+        for i in range(len(merged_entries)):
+            self.assertEqual(merged_entries[i]["time"], i+1)

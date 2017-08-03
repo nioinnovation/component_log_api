@@ -44,7 +44,7 @@ class CoreLogHandler(RESTHandler):
 
         # What route?
         if "identifier" in params and params["identifier"] == "entries":
-            name = params.get("name", "main")
+            name = params.get("name", None)
             count = int(params.get("count", 100))
             level = params.get("level", None)
             component = params.get("component", None)
