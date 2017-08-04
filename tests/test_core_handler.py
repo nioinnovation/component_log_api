@@ -49,7 +49,7 @@ class TestCoreLogHandler(NIOCoreWebTestCase):
         manager.get_log_entries.return_value = []
         request = mock_req
         handler.on_get(request, response)
-        manager.get_log_entries.assert_called_with("main", 100, None, None)
+        manager.get_log_entries.assert_called_with(None, 100, None, None)
         manager.get_log_entries.reset_mock()
 
         # assert query parameters are passed along

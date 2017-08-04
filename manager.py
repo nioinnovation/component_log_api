@@ -1,4 +1,4 @@
-from os import path
+from os import path, listdir
 
 from nio.util.versioning.dependency import DependsOn
 from niocore.common.executable_request import ExecutableRequest
@@ -148,7 +148,8 @@ class LogManager(CoreComponent):
 
         Args:
             name (str): filename identifier (full filename is figured out by
-                adding project path and extension
+                adding project path and extension), if name is None, all
+                files in project's logs directory are considered
             entries_count (int): number of entries to read (-1 reads them all)
             level (str): level to filter by
             component (str): component to filter by
@@ -156,9 +157,21 @@ class LogManager(CoreComponent):
         Returns:
              list of entries where items are in dict format
         """
-        filename = path.join(
-            NIOEnvironment.get_path("logs"), "{}.log".format(name)
-        )
-        if not path.isfile(filename):
-            raise ValueError("{} is not a valid log file".format(filename))
-        return LogEntries.read(filename, entries_count, level, component)
+        if name:
+            filename = path.join(
+                NIOEnvironment.get_path("logs"), "{}.log".format(name)
+            )
+            if not path.isfile(filename):
+                raise ValueError("{} is not a valid log file".format(filename))
+            return LogEntries.read(filename, entries_count, level,
+                                   component)
+        else:
+            # find all log project files
+            files = []
+            logs_dir = NIOEnvironment.get_path("logs")
+            for filename in listdir(logs_dir):
+                extension = path.splitext(filename)[1]
+                if extension == ".log":
+                    files.append(path.join(logs_dir, filename))
+
+            return LogEntries.read_all(files, entries_count, level, component)
