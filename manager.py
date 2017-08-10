@@ -10,6 +10,7 @@ from .log_entries import LogEntries
 from .executor import LogExecutor
 from .core_handler import CoreLogHandler
 from .service_handler import ServiceLogHandler
+from . import __version__ as component_version
 
 
 @DependsOn("niocore.components.rest", "0.1.0")
@@ -31,6 +32,9 @@ class LogManager(CoreComponent):
         # dependency components
         self._rest_manager = None
         self._service_manager = None
+
+    def get_version(self):
+        return component_version
 
     def configure(self, context):
         """ Configures log manager
