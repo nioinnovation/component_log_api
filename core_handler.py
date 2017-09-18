@@ -23,7 +23,7 @@ class CoreLogHandler(RESTHandler):
             http://[host]:[port]/log?level
 
         To retrieve log entries use:
-            - reads last 100 entries from main (core process)
+            - reads last 100 entries from all logs
                 http://[host]:[port]/log/entries
             - reads last 100 entries at ERROR level from main
                 http://[host]:[port]/log/entries?name=main&level=ERROR
@@ -46,10 +46,13 @@ class CoreLogHandler(RESTHandler):
         if "identifier" in params and params["identifier"] == "entries":
             name = params.get("name", None)
             count = int(params.get("count", 100))
-            level = params.get("level", None)
+            levels = params.get("levels", None)
+            if levels:
+                # remove any potential spaces and separate levels by ","
+                levels = levels.replace(" ", "").split(",")
             component = params.get("component", None)
             result = self._log_manager.get_log_entries(
-                name, count, level, component
+                name, count, levels, component
             )
         else:
             add_level = False

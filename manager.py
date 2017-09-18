@@ -144,7 +144,7 @@ class LogManager(CoreComponent):
         return self._service_manager.execute_request(service_name, request)
 
     @staticmethod
-    def get_log_entries(name, entries_count=-1, level=None, component=None):
+    def get_log_entries(name, entries_count=-1, levels=None, component=None):
         """ Retrieves log entries
 
         Allows to specify number of enties to read and
@@ -155,7 +155,7 @@ class LogManager(CoreComponent):
                 adding project path and extension), if name is None, all
                 files in project's logs directory are considered
             entries_count (int): number of entries to read (-1 reads them all)
-            level (str): level to filter by
+            levels (list): levels to filter by
             component (str): component to filter by
 
         Returns:
@@ -167,7 +167,7 @@ class LogManager(CoreComponent):
             )
             if not path.isfile(filename):
                 raise ValueError("{} is not a valid log file".format(filename))
-            return LogEntries.read(filename, entries_count, level,
+            return LogEntries.read(filename, entries_count, levels,
                                    component)
         else:
             # find all log project files
@@ -178,4 +178,4 @@ class LogManager(CoreComponent):
                 if extension == ".log":
                     files.append(path.join(logs_dir, filename))
 
-            return LogEntries.read_all(files, entries_count, level, component)
+            return LogEntries.read_all(files, entries_count, levels, component)
