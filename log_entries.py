@@ -21,13 +21,13 @@ class _LogEntries(object):
     def __init__(self):
         self.logger = get_nio_logger("LogEntries")
 
-    def read(self, filename, num_entries, level, component):
+    def read(self, filename, num_entries, levels, component):
         """ Read entries from a nio log file
 
         Args:
             filename (str): path to file with log entries
             num_entries (int): number of entries to read, if -1 read all
-            level (str): filter entries with this level if not None
+            levels (list): filter entries with these levels if not None
             component (str): filter entries with this component if not None
 
         Returns:
@@ -42,7 +42,7 @@ class _LogEntries(object):
             entry = self._parse_row(row)
             if entry:
                 # filter by level?
-                if level and entry["level"] != level:
+                if levels and entry["level"] not in levels:
                     continue
                 # filter by component?
                 if component and entry["component"] != component:

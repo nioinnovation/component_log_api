@@ -43,7 +43,8 @@ class TestLogManagerEntries(NIOTestCase):
 
             mock_contents.return_value = [
                 "[log time1] NIO [log level1] [log component1] log msg1",
-                "[log time2] NIO [log level2] [log component2] log msg2"
+                "[log time2] NIO [log level2] [log component2] log msg2",
+                "[log time3] NIO [log level3] [log component3] log msg3"
             ]
 
             # verify count argument
@@ -80,9 +81,9 @@ class TestLogManagerEntries(NIOTestCase):
                 }
             )
 
-            # verify level argument
+            # verify levels argument
             result = manager.get_log_entries("filename", 2,
-                                             level="log level2")
+                                             levels=["log level2"])
             self.assertEqual(len(result), 1)
             self.assertDictEqual(
                 result[0],
@@ -91,6 +92,28 @@ class TestLogManagerEntries(NIOTestCase):
                     "level": "log level2",
                     "component": "log component2",
                     "msg": "log msg2"
+                }
+            )
+            # assert that it fetches the two now since the levels allow for it
+            result = manager.get_log_entries("filename", 2,
+                                             levels=["log level1", "log level2"])
+            self.assertEqual(len(result), 2)
+            self.assertDictEqual(
+                result[0],
+                {
+                    "time": "log time2",
+                    "level": "log level2",
+                    "component": "log component2",
+                    "msg": "log msg2"
+                }
+            )
+            self.assertDictEqual(
+                result[1],
+                {
+                    "time": "log time1",
+                    "level": "log level1",
+                    "component": "log component1",
+                    "msg": "log msg1"
                 }
             )
 

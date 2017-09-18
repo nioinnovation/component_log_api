@@ -56,11 +56,11 @@ class TestCoreLogHandler(NIOCoreWebTestCase):
         mock_req.get_params.return_value = {"identifier": "entries",
                                             "name": "service1",
                                             "count": 20,
-                                            "level": "ERROR",
+                                            "levels": "ERROR",
                                             "component": "component_name"}
         handler.on_get(request, response)
         manager.get_log_entries.assert_called_with("service1", 20,
-                                                   "ERROR", "component_name")
+                                                   ["ERROR"], "component_name")
 
     def test_on_post(self):
         manager = MagicMock()
