@@ -1,5 +1,6 @@
 import heapq
 from collections import deque
+import logging
 
 from nio.util.logging import get_nio_logger
 
@@ -37,12 +38,18 @@ class _LogEntries(object):
 
         entries_read = 0
         entries = deque()
+        if level:
+            level = logging._nameToLevel[level]
+        else:
+            # when no level is specified, assume lowest level and above desired,
+            # thus allowing all entries based on level
+            level = logging.DEBUG
 
         for row in self._get_file_contents(filename):
             entry = self._parse_row(row)
             if entry:
-                # filter by level?
-                if level and entry["level"] != level:
+                if not self._is_level_allowed(
+                        level, logging._nameToLevel[entry["level"]]):
                     continue
                 # filter by component?
                 if component and entry["component"] != component:
@@ -53,6 +60,10 @@ class _LogEntries(object):
                 if num_entries != -1 and entries_read == num_entries:
                     break
         return list(entries)
+
+    @staticmethod
+    def _is_level_allowed(level, entry_level):
+        return entry_level >= level
 
     def read_all(self, files, num_entries, level, component):
         """ Reads and merge log entries from given files
