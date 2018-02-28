@@ -143,8 +143,11 @@ class LogManager(CoreComponent):
                                     add_level=add_level)
         return self._service_manager.execute_request(service_name, request)
 
-    @staticmethod
-    def get_log_entries(name, entries_count=-1, level=None, component=None):
+    def _service_list(self):
+        return self._service_manager.instances.configuration.get_children()
+
+    def get_log_entries(
+            self, name, entries_count=-1, level=None, component=None):
         """ Retrieves log entries
 
         Allows to specify number of enties to read and
@@ -162,13 +165,14 @@ class LogManager(CoreComponent):
              list of entries where items are in dict format
         """
         if name:
+            if name not in self._service_list():
+                raise ValueError("{} service does not exist".format(name))
             filename = path.join(
                 NIOEnvironment.get_path("logs"), "{}.log".format(name)
             )
             if not path.isfile(filename):
-                raise ValueError("{} is not a valid log file".format(filename))
-            return LogEntries.read(filename, entries_count, level,
-                                   component)
+                return []
+            return LogEntries.read(filename, entries_count, level, component)
         else:
             # find all log project files
             files = []
