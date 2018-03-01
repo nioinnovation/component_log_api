@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from nio.testing.test_case import NIOTestCase
 
@@ -8,20 +8,35 @@ from ..manager import LogManager
 
 class TestLogManagerEntries(NIOTestCase):
 
-    def test_log_entries_invalid_file(self):
-        """ Assert an invalid file is caught
+    def _patch_service_list(self, manager, services=[]):
+        service_manager = MagicMock()
+        service_manager.instances.configuration.get_children.return_value = \
+            services
+        manager._service_manager = service_manager
+
+    def test_log_entries_invalid_service_name(self):
+        """ Assert an invalid service name is caught
         """
         manager = LogManager()
-        with patch.object(LogEntries, "_get_file_contents") as mock_contents:
-            mock_contents.return_value = []
-            with self.assertRaises(ValueError):
-                manager.get_log_entries("filename", 2)
+        self._patch_service_list(manager)
+        with self.assertRaises(ValueError):
+            manager.get_log_entries("servicename", 2)
+
+    @patch(LogManager.__module__ + ".path")
+    def test_log_entries_invalid_file(self, path):
+        """ Assert an invalid file with a valid service name returns no logs
+        """
+        manager = LogManager()
+        self._patch_service_list(manager, ["servicename"])
+        result = manager.get_log_entries("servicename", 2)
+        self.assertEqual(result, [])
 
     @patch(LogManager.__module__ + ".path")
     def test_log_entries(self, _):
         """ Assert parsing and filtering
         """
         manager = LogManager()
+        self._patch_service_list(manager, ["filename"])
         with patch.object(LogEntries, "_get_file_contents") as mock_contents:
             mock_contents.return_value = []
             result = manager.get_log_entries("filename", 2)
