@@ -27,7 +27,7 @@ class TestLogManagerEntries(NIOTestCase):
         """ Assert an invalid file with a valid service name returns no logs
         """
         manager = LogManager()
-        self._patch_service_list(manager, "servicename")
+        self._patch_service_list(manager, ["servicename"])
         result = manager.get_log_entries("servicename", 2)
         self.assertEqual(result, [])
 
