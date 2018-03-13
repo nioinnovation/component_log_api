@@ -26,11 +26,11 @@ class CoreLogHandler(RESTHandler):
             - reads last 100 entries from main (core process)
                 http://[host]:[port]/log/entries
             - reads last 100 entries at ERROR level from main
-                http://[host]:[port]/log/entries?name=main&level=ERROR
+                http://[host]:[port]/log/entries?id=main&level=ERROR
             - reads last 20 entries at ERROR level from main
-                http://[host]:[port]/log/entries?name=main&level=ERROR&count=20
+                http://[host]:[port]/log/entries?id=main&level=ERROR&count=20
             - reads last 100 entries at WARNING level for service 'service1'
-                http://[host]:[port]/log/entries?name=service1&level=WARNING
+                http://[host]:[port]/log/entries?id=service1&level=WARNING
             - reads last 100 entries for component 'main.BlockManager'
                 http://[host]:[port]/log/entries?component=main.BlockManager
 
@@ -44,12 +44,12 @@ class CoreLogHandler(RESTHandler):
 
         # What route?
         if "identifier" in params and params["identifier"] == "entries":
-            name = params.get("name", None)
+            id = params.get("id", None)
             count = int(params.get("count", 100))
             level = params.get("level", None)
             component = params.get("component", None)
             result = self._log_manager.get_log_entries(
-                name, count, level, component
+                id, count, level, component
             )
         else:
             add_level = False

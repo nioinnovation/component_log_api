@@ -54,7 +54,7 @@ class TestCoreLogHandler(NIOCoreWebTestCase):
 
         # assert query parameters are passed along
         mock_req.get_params.return_value = {"identifier": "entries",
-                                            "name": "service1",
+                                            "id": "service1",
                                             "count": 20,
                                             "level": "ERROR",
                                             "component": "component_name"}

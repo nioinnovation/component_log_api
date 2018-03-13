@@ -15,6 +15,14 @@ class ServiceLogHandler(RESTHandler):
         self.logger = get_nio_logger("ServiceLogHandler")
 
     def on_get(self, request, response, *args, **kwargs):
+        """ API endpoint to retrieve log information from a service
+
+        To retrieve log names use:
+            http://[host]:[port]/log/service/[service_id]
+        To retrieve log names and levels use:
+            http://[host]:[port]/log/service/[service_id]?level
+
+        """
 
         # Ensure instance "read" access in order to get service log levels
         ensure_access("instance", "read")
@@ -24,17 +32,17 @@ class ServiceLogHandler(RESTHandler):
                          format(params))
 
         if "identifier" not in params:
-            raise RuntimeError("Service name not provided")
+            raise RuntimeError("Service Id not provided")
 
-        service_name = params["identifier"]
-        self._verify_service_name(service_name)
+        service_id = params["identifier"]
+        self._verify_service_id(service_id)
 
         add_level = False
         if "level" in params:
             add_level = params['level'].upper() != 'FALSE'
 
         logger_names = \
-            self._log_manager.get_service_logger_names(service_name,
+            self._log_manager.get_service_logger_names(service_id,
                                                        add_level)
 
         # prepare response
@@ -51,10 +59,10 @@ class ServiceLogHandler(RESTHandler):
         self.logger.info("ServiceLogHandler.on_post, params: {0}, body: {1}".
                          format(params, body))
         if "identifier" not in params:
-            raise RuntimeError("Service name not provided")
+            raise RuntimeError("Service Id not provided")
 
         # gather parameters
-        service_name = params["identifier"]
+        service_id = params["identifier"]
 
         if "logger_name" in body:
             logger_name = body["logger_name"]
@@ -66,29 +74,29 @@ class ServiceLogHandler(RESTHandler):
         level = body["log_level"]
 
         # verify parameters
-        self._verify_service_name(service_name)
+        self._verify_service_id(service_id)
 
         if not level:
             msg = "Level is invalid"
             self.logger.error(msg)
             raise RuntimeError(msg)
 
-        self._log_manager.set_service_log_level(service_name,
+        self._log_manager.set_service_log_level(service_id,
                                                 logger_name,
                                                 level)
 
     def on_put(self, request, response, *args, **kwargs):
         return self.on_post(request, response, args, kwargs)
 
-    def _verify_service_name(self, service_name):
+    def _verify_service_id(self, service_id):
         """ Makes sure service name is not empty
 
         Args:
-            service_name (str): Service name
+            service_id (str): Service identifer
 
         """
 
-        if not service_name:
-            msg = "Service name is invalid"
+        if not service_id:
+            msg = "Service Id is invalid"
             self.logger.error(msg)
             raise RuntimeError(msg)
