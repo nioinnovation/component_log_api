@@ -105,11 +105,11 @@ class LogManager(CoreComponent):
         executor = LogExecutor()
         return executor.get_logger_names(add_level)
 
-    def set_service_log_level(self, service_name, logger_name, level):
+    def set_service_log_level(self, service_id, logger_name, level):
         """ Sets the log level to a service logger
 
         Args:
-            service_name (str): Service name
+            service_id (str): Service identifier
             logger_name (str): Logger name, if empty, interpret as all
             level (LogLevel enum): Level to set
 
@@ -121,13 +121,13 @@ class LogManager(CoreComponent):
                                     "set_log_level",
                                     logger_name,
                                     level)
-        return self._service_manager.execute_request(service_name, request)
+        return self._service_manager.execute_request(service_id, request)
 
-    def get_service_logger_names(self, service_name, add_level):
+    def get_service_logger_names(self, service_id, add_level):
         """ Provides logger names for a service
 
         Args:
-            service_name (str): Service name
+            service_id (str): Service identifier
             add_level (bool): Add level to list
 
         Returns:
@@ -141,20 +141,20 @@ class LogManager(CoreComponent):
         request = ExecutableRequest(LogExecutor,
                                     "get_logger_names",
                                     add_level=add_level)
-        return self._service_manager.execute_request(service_name, request)
+        return self._service_manager.execute_request(service_id, request)
 
     def _service_list(self):
         return self._service_manager.instances.configuration.get_children()
 
     def get_log_entries(
-            self, name, entries_count=-1, level=None, component=None):
+            self, id, entries_count=-1, level=None, component=None):
         """ Retrieves log entries
 
         Allows to specify number of enties to read and
         filter by level and component
 
         Args:
-            name (str): filename identifier (full filename is figured out by
+            id (str): filename identifier (full filename is figured out by
                 adding project path and extension), if name is None, all
                 files in project's logs directory are considered
             entries_count (int): number of entries to read (-1 reads them all)
@@ -164,11 +164,11 @@ class LogManager(CoreComponent):
         Returns:
              list of entries where items are in dict format
         """
-        if name:
-            if name not in self._service_list():
-                raise ValueError("{} service does not exist".format(name))
+        if id:
+            if id not in self._service_list():
+                raise ValueError("{} service does not exist".format(id))
             filename = path.join(
-                NIOEnvironment.get_path("logs"), "{}.log".format(name)
+                NIOEnvironment.get_path("logs"), "{}.log".format(id)
             )
             if not path.isfile(filename):
                 return []

@@ -14,21 +14,21 @@ class TestLogManagerEntries(NIOTestCase):
             services
         manager._service_manager = service_manager
 
-    def test_log_entries_invalid_service_name(self):
-        """ Assert an invalid service name is caught
+    def test_log_entries_invalid_service_id(self):
+        """ Assert an invalid service id is caught
         """
         manager = LogManager()
         self._patch_service_list(manager)
         with self.assertRaises(ValueError):
-            manager.get_log_entries("servicename", 2)
+            manager.get_log_entries("invalid_service_id", 2)
 
     @patch(LogManager.__module__ + ".path")
     def test_log_entries_invalid_file(self, path):
         """ Assert an invalid file with a valid service name returns no logs
         """
         manager = LogManager()
-        self._patch_service_list(manager, ["servicename"])
-        result = manager.get_log_entries("servicename", 2)
+        self._patch_service_list(manager, ["service_id"])
+        result = manager.get_log_entries("service_id", 2)
         self.assertEqual(result, [])
 
     @patch(LogManager.__module__ + ".path")

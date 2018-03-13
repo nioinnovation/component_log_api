@@ -30,7 +30,7 @@ class LogExecutor(object):
 
     @staticmethod
     def set_log_level(logger_name, level):
-        """ Sets the log level to a logger withing current process
+        """ Sets the log level to a logger within current process
 
         Args:
             logger_name (str): Logger name
