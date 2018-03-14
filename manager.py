@@ -2,6 +2,7 @@ from os import path, listdir
 
 from nio.util.versioning.dependency import DependsOn
 from niocore.common.executable_request import ExecutableRequest
+from niocore.core.api.resource import MultipleChoices
 from niocore.core.component import CoreComponent
 from nio import discoverable
 from niocore.util.environment import NIOEnvironment
@@ -105,11 +106,11 @@ class LogManager(CoreComponent):
         executor = LogExecutor()
         return executor.get_logger_names(add_level)
 
-    def set_service_log_level(self, service_name, logger_name, level):
+    def set_service_log_level(self, service, logger_name, level):
         """ Sets the log level to a service logger
 
         Args:
-            service_name (str): Service name
+            service (str): Service name or identifier
             logger_name (str): Logger name, if empty, interpret as all
             level (LogLevel enum): Level to set
 
@@ -117,17 +118,18 @@ class LogManager(CoreComponent):
             RuntimeError: if service is not running
         """
 
+        service_id = self._identify_service(service)
         request = ExecutableRequest(LogExecutor,
                                     "set_log_level",
                                     logger_name,
                                     level)
-        return self._service_manager.execute_request(service_name, request)
+        return self._service_manager.execute_request(service_id, request)
 
-    def get_service_logger_names(self, service_name, add_level):
+    def get_service_logger_names(self, service, add_level):
         """ Provides logger names for a service
 
         Args:
-            service_name (str): Service name
+            service (str): Service name or identifier
             add_level (bool): Add level to list
 
         Returns:
@@ -138,16 +140,17 @@ class LogManager(CoreComponent):
             RuntimeError: if service is not running
         """
 
+        service_id = self._identify_service(service)
         request = ExecutableRequest(LogExecutor,
                                     "get_logger_names",
                                     add_level=add_level)
-        return self._service_manager.execute_request(service_name, request)
+        return self._service_manager.execute_request(service_id, request)
 
     def _service_list(self):
         return self._service_manager.instances.configuration.get_children()
 
     def get_log_entries(
-            self, name, entries_count=-1, level=None, component=None):
+            self, name, id=None, entries_count=-1, level=None, component=None):
         """ Retrieves log entries
 
         Allows to specify number of enties to read and
@@ -157,6 +160,7 @@ class LogManager(CoreComponent):
             name (str): filename identifier (full filename is figured out by
                 adding project path and extension), if name is None, all
                 files in project's logs directory are considered
+            id (str): service identifier
             entries_count (int): number of entries to read (-1 reads them all)
             level (str): level to filter by
             component (str): component to filter by
@@ -164,9 +168,16 @@ class LogManager(CoreComponent):
         Returns:
              list of entries where items are in dict format
         """
-        if name:
-            if name not in self._service_list():
-                raise ValueError("{} service does not exist".format(name))
+        if name or id:
+            services = self._service_manager.services
+            if id is not None and name is None:
+                # figure out name from id
+                name = services.get(id, None)
+                if name is None:
+                    raise ValueError("Invalid service id specified")
+            else:
+                if name != 'main' and name not in services.values():
+                    raise ValueError("'{}' service does not exist".format(name))
             filename = path.join(
                 NIOEnvironment.get_path("logs"), "{}.log".format(name)
             )
@@ -183,3 +194,29 @@ class LogManager(CoreComponent):
                     files.append(path.join(logs_dir, filename))
 
             return LogEntries.read_all(files, entries_count, level, component)
+
+    def _identify_service(self, service):
+        """ Identifies a service
+
+        Args:
+            service (str): Service name or id
+
+        Returns:
+             service id
+
+        Raises:
+            MultipleChoices if service name cannot be uniquely identified
+            ValueError if service is invalid
+        """
+        services = self._service_manager.services
+        if service in services:
+            return service
+        found = [id for id, name in services.items() if name == service]
+        # handle multiple choices
+        found_count = len(found)
+        if found_count == 1:
+            return found[0]
+        elif found_count > 1:
+            raise MultipleChoices(found)
+        raise ValueError("Service: '{}' is invalid".format(service))
+
