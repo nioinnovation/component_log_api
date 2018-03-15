@@ -87,7 +87,8 @@ class TestLogManager(NIOCoreTestCase):
         manager._service_manager.execute_request = Mock()
         service_name = "service1"
         service_id = "service1_id"
-        manager._service_manager.services = {service_id: service_name}
+        manager._service_manager.identify_service = \
+            Mock(return_value=service_id)
         self.assertEqual(manager._service_manager.execute_request.call_count,
                          0)
         manager.set_service_log_level(service_name, "logger1", "DEBUG")
@@ -108,7 +109,8 @@ class TestLogManager(NIOCoreTestCase):
         manager._service_manager = Mock()
         service_name = "service1"
         service_id = "service1_id"
-        manager._service_manager.services = {service_id: service_name}
+        manager._service_manager.identify_service = \
+            Mock(return_value=service_id)
         manager._service_manager.execute_request = Mock()
 
         self.assertEqual(manager._service_manager.execute_request.call_count,
