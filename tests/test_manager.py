@@ -85,13 +85,17 @@ class TestLogManager(NIOCoreTestCase):
         manager = LogManager()
         manager._service_manager = Mock()
         manager._service_manager.execute_request = Mock()
+        service_name = "service1"
+        service_id = "service1_id"
+        manager._service_manager.identify_service = \
+            Mock(return_value=service_id)
         self.assertEqual(manager._service_manager.execute_request.call_count,
                          0)
-        manager.set_service_log_level("service1", "logger1", "DEBUG")
+        manager.set_service_log_level(service_name, "logger1", "DEBUG")
         self.assertEqual(manager._service_manager.execute_request.call_count,
                          1)
         (args, kwargs) = manager._service_manager.execute_request.call_args
-        self.assertEqual(args[0], "service1")
+        self.assertEqual(args[0], service_id)
         request = args[1]
         self.assertIsInstance(request, ExecutableRequest)
         self.assertEqual(request._type, LogExecutor)
@@ -103,15 +107,20 @@ class TestLogManager(NIOCoreTestCase):
         # retrieving logger names
         manager = LogManager()
         manager._service_manager = Mock()
+        service_name = "service1"
+        service_id = "service1_id"
+        manager._service_manager.identify_service = \
+            Mock(return_value=service_id)
         manager._service_manager.execute_request = Mock()
+
         self.assertEqual(manager._service_manager.execute_request.call_count,
                          0)
         add_level = True
-        manager.get_service_logger_names("service1", add_level)
+        manager.get_service_logger_names(service_name, add_level)
         self.assertEqual(manager._service_manager.execute_request.call_count,
                          1)
         (args, kwargs) = manager._service_manager.execute_request.call_args
-        self.assertEqual(args[0], "service1")
+        self.assertEqual(args[0], service_id)
         request = args[1]
         self.assertIsInstance(request, ExecutableRequest)
         self.assertEqual(request._type, LogExecutor)

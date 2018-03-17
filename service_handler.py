@@ -26,15 +26,14 @@ class ServiceLogHandler(RESTHandler):
         if "identifier" not in params:
             raise RuntimeError("Service name not provided")
 
-        service_name = params["identifier"]
-        self._verify_service_name(service_name)
+        service = params["identifier"]
 
         add_level = False
         if "level" in params:
             add_level = params['level'].upper() != 'FALSE'
 
         logger_names = \
-            self._log_manager.get_service_logger_names(service_name,
+            self._log_manager.get_service_logger_names(service,
                                                        add_level)
 
         # prepare response
@@ -54,7 +53,7 @@ class ServiceLogHandler(RESTHandler):
             raise RuntimeError("Service name not provided")
 
         # gather parameters
-        service_name = params["identifier"]
+        service = params["identifier"]
 
         if "logger_name" in body:
             logger_name = body["logger_name"]
@@ -64,31 +63,14 @@ class ServiceLogHandler(RESTHandler):
             logger_name = ""
 
         level = body["log_level"]
-
-        # verify parameters
-        self._verify_service_name(service_name)
-
         if not level:
             msg = "Level is invalid"
             self.logger.error(msg)
             raise RuntimeError(msg)
 
-        self._log_manager.set_service_log_level(service_name,
+        self._log_manager.set_service_log_level(service,
                                                 logger_name,
                                                 level)
 
     def on_put(self, request, response, *args, **kwargs):
         return self.on_post(request, response, args, kwargs)
-
-    def _verify_service_name(self, service_name):
-        """ Makes sure service name is not empty
-
-        Args:
-            service_name (str): Service name
-
-        """
-
-        if not service_name:
-            msg = "Service name is invalid"
-            self.logger.error(msg)
-            raise RuntimeError(msg)

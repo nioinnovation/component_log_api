@@ -8,27 +8,26 @@ from ..manager import LogManager
 
 class TestLogManagerEntries(NIOTestCase):
 
-    def _patch_service_list(self, manager, services=[]):
+    def _patch_service_list(self, manager, services):
         service_manager = MagicMock()
-        service_manager.instances.configuration.get_children.return_value = \
-            services
+        service_manager.services = services
         manager._service_manager = service_manager
 
     def test_log_entries_invalid_service_name(self):
         """ Assert an invalid service name is caught
         """
         manager = LogManager()
-        self._patch_service_list(manager)
+        self._patch_service_list(manager, {})
         with self.assertRaises(ValueError):
-            manager.get_log_entries("servicename", 2)
+            manager.get_log_entries("invalid_service_name", entries_count=2)
 
     @patch(LogManager.__module__ + ".path")
     def test_log_entries_invalid_file(self, path):
         """ Assert an invalid file with a valid service name returns no logs
         """
         manager = LogManager()
-        self._patch_service_list(manager, ["servicename"])
-        result = manager.get_log_entries("servicename", 2)
+        self._patch_service_list(manager, {"service_id": "service_name"})
+        result = manager.get_log_entries("service_name", entries_count=2)
         self.assertEqual(result, [])
 
     @patch(LogManager.__module__ + ".path")
@@ -36,15 +35,15 @@ class TestLogManagerEntries(NIOTestCase):
         """ Assert parsing and filtering
         """
         manager = LogManager()
-        self._patch_service_list(manager, ["filename"])
+        self._patch_service_list(manager, {"service_id": "service_name"})
         with patch.object(LogEntries, "_get_file_contents") as mock_contents:
             mock_contents.return_value = []
-            result = manager.get_log_entries("filename", 2)
+            result = manager.get_log_entries("service_name", entries_count=2)
             self.assertEqual(len(result), 0)
 
             mock_contents.return_value = \
                 ["[log time] NIO [DEBUG] [log component] log msg"]
-            result = manager.get_log_entries("filename", 2)
+            result = manager.get_log_entries("service_name", entries_count=2)
             self.assertEqual(len(result), 1)
             self.assertDictEqual(
                 result[0],
@@ -62,7 +61,7 @@ class TestLogManagerEntries(NIOTestCase):
             ]
 
             # verify count argument
-            result = manager.get_log_entries("filename", 1)
+            result = manager.get_log_entries("service_name", entries_count=1)
             self.assertEqual(len(result), 1)
             self.assertDictEqual(
                 result[0],
@@ -74,7 +73,7 @@ class TestLogManagerEntries(NIOTestCase):
                 }
             )
 
-            result = manager.get_log_entries("filename", 2)
+            result = manager.get_log_entries("service_name", entries_count=2)
             self.assertEqual(len(result), 2)
             self.assertDictEqual(
                 result[0],
@@ -96,7 +95,7 @@ class TestLogManagerEntries(NIOTestCase):
             )
 
             # verify level argument
-            result = manager.get_log_entries("filename", 2,
+            result = manager.get_log_entries("service_name", entries_count=2,
                                              level="INFO")
             self.assertEqual(len(result), 1)
             self.assertDictEqual(
@@ -109,18 +108,18 @@ class TestLogManagerEntries(NIOTestCase):
                 }
             )
             # setting DEBUG as lowest level allowed, retrieves all
-            result = manager.get_log_entries("filename", 2,
+            result = manager.get_log_entries("service_name", entries_count=2,
                                              level="DEBUG")
             # both entries were allowed since desired level is DEBUG and above
             self.assertEqual(len(result), 2)
 
-            result = manager.get_log_entries("filename", 2,
+            result = manager.get_log_entries("service_name", entries_count=2,
                                              level="ERROR")
             # no entries with level ERROR and above
             self.assertEqual(len(result), 0)
 
             # verify component argument
-            result = manager.get_log_entries("filename", 2,
+            result = manager.get_log_entries("service_name", entries_count=2,
                                              component="log component1")
             self.assertEqual(len(result), 1)
             self.assertDictEqual(
