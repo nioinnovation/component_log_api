@@ -166,13 +166,26 @@ class LogManager(CoreComponent):
         """
         if name:
             if name != 'main':
+                # make sure 'name' provided matches the name of an existing
+                # service
                 services = self._service_manager.services
                 if name not in services.values():
-                    raise ValueError("'{}' service does not exist".format(name))
+                    raise ValueError("Service with name '{}' does not exist".
+                                     format(name))
         elif id:
-            # if no name specified, use id (just like get_service_label
-            # method in core)
-            name = id
+            # make sure the 'id' is valid first
+            services = self._service_manager.services
+            if id not in services:
+                raise ValueError("Service with id '{}' does not exist".
+                                 format(id))
+            # if asked for logs through 'id' then find out service 'name' since
+            # the service 'name' is used as prefix for the log file name
+            name = services.get(id)
+            # even though service 'name' is supposed to be enforced
+            # check for it, and use 'id' if 'name' is empty (just like
+            # get_service_label method in core)
+            if not name:
+                name = id
 
         if name:
             filename = path.join(
