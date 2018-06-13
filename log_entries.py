@@ -1,6 +1,7 @@
 import heapq
 from collections import deque
 import logging
+from datetime import datetime
 
 from nio.util.logging import get_nio_logger
 
@@ -101,11 +102,17 @@ class _LogEntries(object):
     def _parse_row(self, row):
         closing_bracket1 = row.find(']')
         if closing_bracket1 == -1:
-            # line does not conform ro expected format
+            # line does not conform to expected format
             # likely to be an exception row
             self.logger.debug("Row: {} is invalid".format(row))
             return None
         time = row[1:closing_bracket1]
+        # validate time
+        try:
+            datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ')
+        except ValueError:
+            self.logger.debug("Invalid time: {} in row: {}".format(time, row))
+            return None
 
         closing_bracket2 = row.find(']', closing_bracket1 + 1)
         if closing_bracket2 == -1:
@@ -114,6 +121,10 @@ class _LogEntries(object):
             self.logger.debug("Row: {} is invalid".format(row))
             return None
         level = row[closing_bracket1 + 7: closing_bracket2]
+        # validate level
+        if level not in logging._nameToLevel:
+            self.logger.debug("Invalid level: {} in row: {}".format(level, row))
+            return None
 
         closing_bracket3 = row.find(']', closing_bracket2 + 1)
         if closing_bracket3 == -1:
