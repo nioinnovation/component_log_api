@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from nio.testing.test_case import NIOTestCase
+from nio.util.nio_time import get_nio_time
 
 from ..log_entries import LogEntries, LogEntry
 from ..manager import LogManager
@@ -41,14 +42,16 @@ class TestLogManagerEntries(NIOTestCase):
             result = manager.get_log_entries("service_name", entries_count=2)
             self.assertEqual(len(result), 0)
 
+            nio_time1 = get_nio_time()
+            nio_time2 = get_nio_time()
             mock_contents.return_value = \
-                ["[log time] NIO [DEBUG] [log component] log msg"]
+                ["[{}] NIO [DEBUG] [log component] log msg".format(nio_time1)]
             result = manager.get_log_entries("service_name", entries_count=2)
             self.assertEqual(len(result), 1)
             self.assertDictEqual(
                 result[0],
                 {
-                    "time": "log time",
+                    "time": nio_time1,
                     "level": "DEBUG",
                     "component": "log component",
                     "msg": "log msg"
@@ -56,8 +59,8 @@ class TestLogManagerEntries(NIOTestCase):
             )
 
             mock_contents.return_value = [
-                "[log time1] NIO [INFO] [log component1] log msg1",
-                "[log time2] NIO [DEBUG] [log component2] log msg2"
+                "[{}] NIO [INFO] [log component1] log msg1".format(nio_time1),
+                "[{}] NIO [DEBUG] [log component2] log msg2".format(nio_time2)
             ]
 
             # verify count argument
@@ -66,7 +69,7 @@ class TestLogManagerEntries(NIOTestCase):
             self.assertDictEqual(
                 result[0],
                 {
-                    "time": "log time1",
+                    "time": nio_time1,
                     "level": "INFO",
                     "component": "log component1",
                     "msg": "log msg1"
@@ -78,7 +81,7 @@ class TestLogManagerEntries(NIOTestCase):
             self.assertDictEqual(
                 result[0],
                 {
-                    "time": "log time2",
+                    "time": nio_time2,
                     "level": "DEBUG",
                     "component": "log component2",
                     "msg": "log msg2"
@@ -87,7 +90,7 @@ class TestLogManagerEntries(NIOTestCase):
             self.assertDictEqual(
                 result[1],
                 {
-                    "time": "log time1",
+                    "time": nio_time1,
                     "level": "INFO",
                     "component": "log component1",
                     "msg": "log msg1"
@@ -101,7 +104,7 @@ class TestLogManagerEntries(NIOTestCase):
             self.assertDictEqual(
                 result[0],
                 {
-                    "time": "log time1",
+                    "time": nio_time1,
                     "level": "INFO",
                     "component": "log component1",
                     "msg": "log msg1"
@@ -125,7 +128,50 @@ class TestLogManagerEntries(NIOTestCase):
             self.assertDictEqual(
                 result[0],
                 {
-                    "time": "log time1",
+                    "time": nio_time1,
+                    "level": "INFO",
+                    "component": "log component1",
+                    "msg": "log msg1"
+                }
+            )
+
+            # deal with error conditions
+            # invalid time
+            mock_contents.return_value = \
+                ["[invalid time] NIO [DEBUG] [log component] log msg"]
+            result = manager.get_log_entries("service_name", entries_count=1)
+            self.assertEqual(len(result), 0)
+
+            # invalid log level
+            mock_contents.return_value = \
+                ["[{}] NIO [INVALID_LEVEL] [log component] log msg".format(
+                    nio_time1)]
+            result = manager.get_log_entries("service_name", entries_count=1)
+            self.assertEqual(len(result), 0)
+
+            # try some known exception rows
+            mock_contents.return_value = \
+                ["Traceback (most recent call last):",
+                "File /usr/local//lib/python3.5//site-packages/nio/block/mixins/retry/retry.py, line 137, in execute_with_retry",
+                 "result = execute_method(*args, **kwargs)",
+                 "socket.gaierror: [Errno -2] Name or service not known"
+                 ]
+            result = manager.get_log_entries("service_name", entries_count=4)
+            self.assertEqual(len(result), 0)
+
+            # mix it with a valid row
+            mock_contents.return_value = \
+                ["Traceback (most recent call last):",
+                 "[{}] NIO [INFO] [log component1] log msg1".format(nio_time1),
+                 "result = execute_method(*args, **kwargs)",
+                 "socket.gaierror: [Errno -2] Name or service not known"
+                 ]
+            result = manager.get_log_entries("service_name", entries_count=4)
+            self.assertEqual(len(result), 1)
+            self.assertDictEqual(
+                result[0],
+                {
+                    "time": nio_time1,
                     "level": "INFO",
                     "component": "log component1",
                     "msg": "log msg1"
