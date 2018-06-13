@@ -111,8 +111,12 @@ class _LogEntries(object):
         try:
             datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ')
         except ValueError:
-            self.logger.debug("Invalid time: {} in row: {}".format(time, row))
-            return None
+            try:
+                # Additional check for timestamps using old nio_time format 
+                datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f')
+            except ValueError:
+                self.logger.debug("Invalid time: {} in row: {}".format(time, row))
+                return None
 
         closing_bracket2 = row.find(']', closing_bracket1 + 1)
         if closing_bracket2 == -1:
