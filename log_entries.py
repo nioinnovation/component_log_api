@@ -62,10 +62,6 @@ class _LogEntries(object):
                     break
         return list(entries)
 
-    @staticmethod
-    def _is_level_allowed(level, entry_level):
-        return entry_level >= level
-
     def read_all(self, files, num_entries, level, component):
         """ Reads and merge log entries from given files
 
@@ -93,11 +89,6 @@ class _LogEntries(object):
         # merge entries
         result = self._merge_entries(entries_read)
         return result[-num_entries:] if num_entries else result
-
-    @staticmethod
-    def _get_file_contents(filename):
-        with open(filename, "r") as f:
-            return reversed(f.readlines())
 
     def _parse_row(self, row):
         closing_bracket1 = row.find(']')
@@ -149,8 +140,16 @@ class _LogEntries(object):
             })
 
     @staticmethod
+    def _get_file_contents(filename):
+        with open(filename, "r") as f:
+            return reversed(f.readlines())
+
+    @staticmethod
+    def _is_level_allowed(level, entry_level):
+        return entry_level >= level
+
+    @staticmethod
     def _merge_entries(lists):
         return [item for item in heapq.merge(*lists)]
-
 
 LogEntries = _LogEntries()
