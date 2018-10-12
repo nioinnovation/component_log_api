@@ -28,7 +28,8 @@ class TestLogManagerEntries(NIOTestCase):
         """
         manager = LogManager()
         self._patch_service_list(manager, {"service_id": "service_name"})
-        result = manager.get_log_entries("service_name", entries_count=2)
+        with patch.object(LogEntries, "_get_file_contents"):
+            result = manager.get_log_entries("service_name", entries_count=2)
         self.assertEqual(result, [])
 
     @patch(LogManager.__module__ + ".path")
