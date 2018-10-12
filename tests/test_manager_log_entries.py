@@ -179,6 +179,32 @@ class TestLogManagerEntries(NIOTestCase):
                 }
             )
 
+            # an entire traceback
+            msg = "log msg1"
+            lines = [
+                "[{}] NIO [ERROR] [log component1] {}\n".format(
+                    nio_time1, msg),
+                "Traceback (most recent call last):\n",
+                "  result = execute_method(*args, **kwargs)\n",
+                "socket.gaierror: [Errno -2] Name or service not known\n"
+            ]
+            mock_contents.return_value = reversed(lines)
+            result = manager.get_log_entries("service_name", entries_count=4)
+            self.assertEqual(len(result), 1)
+            self.assertDictEqual(
+                result[0],
+                {
+                    "time": nio_time1,
+                    "level": "INFO",
+                    "component": "log component1",
+                    "msg": "log msg1"
+                }
+            )
+            self.assertEqual(result[0]["time"], nio_time1)
+            self.assertEqual(result[0]["level"], "ERROR")
+            self.assertEqual(result[0]["component"], "log component1")
+            self.assertEqual(result[0]["msg"], msg + "\n" + "".join(lines[1:]))
+
     def _get_entries_dict(self):
         return \
             {
