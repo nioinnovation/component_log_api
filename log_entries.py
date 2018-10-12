@@ -9,12 +9,6 @@ from nio.util.logging import get_nio_logger
 class LogEntry(dict):
     """ Provides comparison operators to the dictionary elements
     """
-    def __eq__(self, other):
-        return self["time"] == other["time"]
-
-    def __ne__(self, other):
-        return not (self["time"] == other["time"])
-
     def __lt__(self, other):
         return self["time"] < other["time"]
 

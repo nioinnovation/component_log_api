@@ -160,25 +160,6 @@ class TestLogManagerEntries(NIOTestCase):
             result = manager.get_log_entries("service_name", entries_count=4)
             self.assertEqual(len(result), 0)
 
-            # mix it with a valid row
-            mock_contents.return_value = \
-                ["Traceback (most recent call last):",
-                 "[{}] NIO [INFO] [log component1] log msg1".format(nio_time1),
-                 "result = execute_method(*args, **kwargs)",
-                 "socket.gaierror: [Errno -2] Name or service not known"
-                 ]
-            result = manager.get_log_entries("service_name", entries_count=4)
-            self.assertEqual(len(result), 1)
-            self.assertDictEqual(
-                result[0],
-                {
-                    "time": nio_time1,
-                    "level": "INFO",
-                    "component": "log component1",
-                    "msg": "log msg1"
-                }
-            )
-
             # an entire traceback
             msg = "log msg1"
             lines = [
@@ -195,15 +176,11 @@ class TestLogManagerEntries(NIOTestCase):
                 result[0],
                 {
                     "time": nio_time1,
-                    "level": "INFO",
+                    "level": "ERROR",
                     "component": "log component1",
-                    "msg": "log msg1"
+                    "msg": msg + "\n" + "".join(lines[1:])
                 }
             )
-            self.assertEqual(result[0]["time"], nio_time1)
-            self.assertEqual(result[0]["level"], "ERROR")
-            self.assertEqual(result[0]["component"], "log component1")
-            self.assertEqual(result[0]["msg"], msg + "\n" + "".join(lines[1:]))
 
     def _get_entries_dict(self):
         return \
