@@ -9,12 +9,6 @@ from nio.util.logging import get_nio_logger
 class LogEntry(dict):
     """ Provides comparison operators to the dictionary elements
     """
-    def __eq__(self, other):
-        return self["time"] == other["time"]
-
-    def __ne__(self, other):
-        return not (self["time"] == other["time"])
-
     def __lt__(self, other):
         return self["time"] < other["time"]
 
@@ -46,25 +40,35 @@ class _LogEntries(object):
             # thus allowing all entries based on level
             level = logging.DEBUG
 
+        extended = []
         for row in self._get_file_contents(filename):
             entry = self._parse_row(row)
-            if entry:
-                if not self._is_level_allowed(
-                        level, logging._nameToLevel[entry["level"]]):
+            if entry is None:
+                continue
+            # time == None if not first row of message
+            if entry["time"] is not None:
+                if entry["level"] is not None:
+                    if not self._is_level_allowed(
+                            level, logging._nameToLevel[entry["level"]]):
+                        continue
+                else:
                     continue
                 # filter by component?
                 if component and entry["component"] != component:
                     continue
+                # any extended rows buffered belong under this first row
+                entry["msg"] += "".join(reversed(extended))
+                extended = []
                 entries_read += 1
                 entries.appendleft(entry)
                 # number of entries specified?
                 if num_entries != -1 and entries_read == num_entries:
                     break
+            else:
+                # rows are being read bottom to top, so extended rows are
+                # buffered here until another first row is read
+                extended.append(row)
         return list(entries)
-
-    @staticmethod
-    def _is_level_allowed(level, entry_level):
-        return entry_level >= level
 
     def read_all(self, files, num_entries, level, component):
         """ Reads and merge log entries from given files
@@ -94,51 +98,55 @@ class _LogEntries(object):
         result = self._merge_entries(entries_read)
         return result[-num_entries:] if num_entries else result
 
-    @staticmethod
-    def _get_file_contents(filename):
-        with open(filename, "r") as f:
-            return reversed(f.readlines())
-
     def _parse_row(self, row):
-        closing_bracket1 = row.find(']')
+        continued = False
+        closing_bracket1 = row.find("]")
         if closing_bracket1 == -1:
             # line does not conform to expected format
             # likely to be an exception row
             self.logger.debug("Row: {} is invalid".format(row))
-            return None
-        time = row[1:closing_bracket1]
-        # validate time
-        try:
-            datetime.strptime(time, '%Y-%m-%dT%H:%M:%S.%fZ')
-        except ValueError:
+            continued = True
+            time = None
+        else:
+            time = row[1:closing_bracket1]
+            # validate time
             try:
-                # Additional check for timestamps using old nio_time format 
-                datetime.strptime(time, '%Y-%m-%d %H:%M:%S.%f')
+                datetime.strptime(time, "%Y-%m-%dT%H:%M:%S.%fZ")
             except ValueError:
-                self.logger.debug("Invalid time: {} in row: {}".format(time, row))
-                return None
+                try:
+                    # Additional check for timestamps using old nio_time format 
+                    datetime.strptime(time, "%Y-%m-%d %H:%M:%S.%f")
+                except ValueError:
+                    self.logger.debug("Invalid time: {} in row: {}".format(time, row))
+                    time = None
 
-        closing_bracket2 = row.find(']', closing_bracket1 + 1)
+        closing_bracket2 = row.find("]", closing_bracket1 + 1)
         if closing_bracket2 == -1:
             # line does not conform ro expected format
             # likely to be an exception row
             self.logger.debug("Row: {} is invalid".format(row))
-            return None
-        level = row[closing_bracket1 + 7: closing_bracket2]
-        # validate level
-        if level not in logging._nameToLevel:
-            self.logger.debug("Invalid level: {} in row: {}".format(level, row))
-            return None
+            continued = True
+            level = None
+        else:
+            level = row[closing_bracket1 + 7: closing_bracket2]
+            # validate level
+            if level not in logging._nameToLevel:
+                self.logger.debug("Invalid level: {} in row: {}".format(level, row))
+                level = None
 
-        closing_bracket3 = row.find(']', closing_bracket2 + 1)
+        closing_bracket3 = row.find("]", closing_bracket2 + 1)
         if closing_bracket3 == -1:
             # line does not conform ro expected format
             # likely to be an exception row
             self.logger.debug("Row: {} is invalid".format(row))
-            return None
-        component_name = row[closing_bracket2 + 3: closing_bracket3]
-
-        msg = row[closing_bracket3 + 2:]
+            continued = True
+            component_name = None
+        else:
+            component_name = row[closing_bracket2 + 3: closing_bracket3]
+            self.logger.debug("OK: {}".format(row))
+            msg = row[closing_bracket3 + 2:]
+        if continued:
+            msg = row
 
         return \
             LogEntry({
@@ -149,8 +157,16 @@ class _LogEntries(object):
             })
 
     @staticmethod
+    def _get_file_contents(filename):
+        with open(filename, "r") as f:
+            return reversed(f.readlines())
+
+    @staticmethod
+    def _is_level_allowed(level, entry_level):
+        return entry_level >= level
+
+    @staticmethod
     def _merge_entries(lists):
         return [item for item in heapq.merge(*lists)]
-
 
 LogEntries = _LogEntries()

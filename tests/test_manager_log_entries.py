@@ -28,7 +28,8 @@ class TestLogManagerEntries(NIOTestCase):
         """
         manager = LogManager()
         self._patch_service_list(manager, {"service_id": "service_name"})
-        result = manager.get_log_entries("service_name", entries_count=2)
+        with patch.object(LogEntries, "_get_file_contents"):
+            result = manager.get_log_entries("service_name", entries_count=2)
         self.assertEqual(result, [])
 
     @patch(LogManager.__module__ + ".path")
@@ -159,22 +160,25 @@ class TestLogManagerEntries(NIOTestCase):
             result = manager.get_log_entries("service_name", entries_count=4)
             self.assertEqual(len(result), 0)
 
-            # mix it with a valid row
-            mock_contents.return_value = \
-                ["Traceback (most recent call last):",
-                 "[{}] NIO [INFO] [log component1] log msg1".format(nio_time1),
-                 "result = execute_method(*args, **kwargs)",
-                 "socket.gaierror: [Errno -2] Name or service not known"
-                 ]
+            # an entire traceback
+            msg = "log msg1"
+            lines = [
+                "[{}] NIO [ERROR] [log component1] {}\n".format(
+                    nio_time1, msg),
+                "Traceback (most recent call last):\n",
+                "  result = execute_method(*args, **kwargs)\n",
+                "socket.gaierror: [Errno -2] Name or service not known\n"
+            ]
+            mock_contents.return_value = reversed(lines)
             result = manager.get_log_entries("service_name", entries_count=4)
             self.assertEqual(len(result), 1)
             self.assertDictEqual(
                 result[0],
                 {
                     "time": nio_time1,
-                    "level": "INFO",
+                    "level": "ERROR",
                     "component": "log component1",
-                    "msg": "log msg1"
+                    "msg": msg + "\n" + "".join(lines[1:])
                 }
             )
 
